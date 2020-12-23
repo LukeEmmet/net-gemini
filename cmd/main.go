@@ -2,29 +2,47 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 
-	gemini "github.com/jackdoe/net-gemini"
+	gemini "github.com/LukeEmmet/net-gemini"
 )
 
+//_________________________________________________
+//very simplistic home page, advising the visitor to go somewhere more specific
+var homePageGMI = "" + 
+`# Geminigem home page
+
+A dynamic server for scripting gemini and nimigem protocols.
+
+But there's not much to see on this home page, so please go somewhere more specific
+
+Thank you.`
+//_________________________________________________
+
+
+
+func homePage (w *gemini.Response, r *gemini.Request) {
+
+		w.SetStatus(gemini.StatusSuccess, "text/gemini")
+		w.Write(([]byte(homePageGMI)))
+	}
+    
 func main() {
-	root := flag.String("root", "", "root directory")
+	cgi := flag.String("cgi", "cgi-bin", "cgi directory")
 	crt := flag.String("crt", "", "path to cert")
 	key := flag.String("key", "", "path to cert key")
 	bind := flag.String("bind", "localhost:1965", "bind to")
 	flag.Parse()
 
-	gemini.HandleFunc("/example", func(w *gemini.Response, r *gemini.Request) {
-		if len(r.URL.RawQuery) == 0 {
-			w.SetStatus(gemini.StatusInput, "what is the answer to the ultimate question")
-		} else {
-			w.SetStatus(gemini.StatusSuccess, "text/gemini")
-			answer := r.URL.RawQuery
-			w.Write([]byte("HELLO: " + r.URL.Path + ", yes the answer is: " + answer))
-		}
-	})
+	fmt.Fprintln(os.Stderr, "starting up")
 
-	gemini.Handle("/", gemini.FileServer(*root))
+	//use CGI module
+    gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, *bind))
 
+    //simple home/default page otherwise
+	gemini.HandleFunc("/", homePage)
+    
 	log.Fatal(gemini.ListenAndServeTLS(*bind, *crt, *key))
 }
