@@ -8,6 +8,7 @@ import (
 
 type Request struct {
 	URL *url.URL
+	Payload string
 }
 
 type Response struct {

@@ -135,7 +135,11 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 	vars := prepareCGIVariables(URL, bind, w.conn, exePath, p)
 	cmd.Env = []string{}
 
-
+	if URL.Scheme == "nimigem" {
+		//pass the payload on stdin to the cgi app, like HTTP POST
+		//Debug( "Execute nimigem CGI path: " + exePath + "; script: " + p + "; payload: " + r.Payload)
+		cmd.Stdin =   strings.NewReader(r.Payload)	//pass in the payload on stdin, like HTTP CGI does with POST
+	}
 	for key, value := range vars {
 		cmd.Env = append(cmd.Env, key+"="+value)
 	}

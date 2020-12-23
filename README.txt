@@ -90,6 +90,7 @@ func (f HandlerFunc) ServeGemini(w *Response, r *Request)
 
 type Request struct {
 	URL *url.URL
+	Payload string	//for nimigem requests, otherwise empty
 }
 
 type Response struct {

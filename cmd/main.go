@@ -9,40 +9,39 @@ import (
 	gemini "github.com/LukeEmmet/net-gemini"
 )
 
-//_________________________________________________
-//very simplistic home page, advising the visitor to go somewhere more specific
-var homePageGMI = "" + 
-`# Geminigem home page
+var version = "0.1.1"
 
-A dynamic server for scripting gemini and nimigem protocols.
+func infoPage (w *gemini.Response, r *gemini.Request) {
+	
+    info := "#Geminem server info\n" +
+        "\n" +
+        "* Gemingem v" + version + "\n" 
 
-But there's not much to see on this home page, so please go somewhere more specific
+    w.SetStatus(gemini.StatusSuccess, "text/gemini")
+    w.Write(([]byte(info)))
+}
 
-Thank you.`
-//_________________________________________________
-
-
-
-func homePage (w *gemini.Response, r *gemini.Request) {
-
-		w.SetStatus(gemini.StatusSuccess, "text/gemini")
-		w.Write(([]byte(homePageGMI)))
-	}
-    
 func main() {
+	//root := flag.String("root", "", "root directory")
 	cgi := flag.String("cgi", "cgi-bin", "cgi directory")
+	docs := flag.String("docs", "docs", "docs directory")
 	crt := flag.String("crt", "", "path to cert")
 	key := flag.String("key", "", "path to cert key")
 	bind := flag.String("bind", "localhost:1965", "bind to")
 	flag.Parse()
 
-	fmt.Fprintln(os.Stderr, "starting up")
+	//gemini.HandleFunc("/example", handler)
+	fmt.Fprintln(os.Stderr, "Starting up Geminigem server on " + *bind)
 
-	//use CGI module
-    gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, *bind))
+	//use cgi module to handle urls starting cgi-bin
+	gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, *bind))
 
-    //simple home/default page otherwise
-	gemini.HandleFunc("/", homePage)
+    //handle /info with specific function 
+    gemini.HandleFunc("/info", infoPage)
     
+	//put the generic one last, otherwise it will take precedence over others
+    //file handling module is 
+	gemini.Handle("/", gemini.FileServer(*docs))
+
 	log.Fatal(gemini.ListenAndServeTLS(*bind, *crt, *key))
 }

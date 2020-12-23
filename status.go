@@ -24,4 +24,7 @@ const (
 	StatusCertNotAccepted                    = 63
 	StatusFutureCertRejected                 = 64
 	StatusExpiredCertRejected                = 65
+    
+    //overlaps with Gemini response above (21 which is not an official part of gemini)
+    StatusNimigemSuccess                = 21
 )
