@@ -1,0 +1,20 @@
+# Geminigem server
+
+Geminigem is a dynamic small net server for scripting gemini:// and nimigem:// protocols.
+
+There's not much to see on this home/default page, so please go somewhere more specific, such as one of its scripts. 
+
+## CGI scripts
+
+This server has CGI support, so the available resources will depend on the script that are installed. These scripts are installed under /cgi-bin
+
+## Server info
+
+=> /info Geminigem server info
+
+## Geminigem source
+
+Source code for this server:
+    
+=> https://github.com/LukeEmmet/net-gemini Geminigem source repository
+

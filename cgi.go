@@ -118,7 +118,6 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 	exePath := p
 	exeFlags := ""
 
-	//Debug("ready to launch CGI")
 	// Spawn process
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -130,25 +129,19 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 		cmd = exec.CommandContext(ctx, exePath, exeFlags, p)
 	}
 
-	//Debug("prepare CGI vars")
 	// Prepare environment variables
 	vars := prepareCGIVariables(URL, bind, w.conn, exePath, p)
 	cmd.Env = []string{}
 
 	if URL.Scheme == "nimigem" {
 		//pass the payload on stdin to the cgi app, like HTTP POST
-		//Debug( "Execute nimigem CGI path: " + exePath + "; script: " + p + "; payload: " + r.Payload)
 		cmd.Stdin =   strings.NewReader(r.Payload)	//pass in the payload on stdin, like HTTP CGI does with POST
 	}
 	for key, value := range vars {
 		cmd.Env = append(cmd.Env, key+"="+value)
 	}
 
-	//Debug("launch CGI")
 	response, err := cmd.Output()
-	//Debug("CGI output: " + string(response))
-
-	//fmt.Printf("%s", response)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		Debug("Terminating CGI process " + p + " due to exceeding 10 second runtime limit.")
@@ -184,7 +177,7 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 		w.SetStatus(StatusCGIError, "CGI error - invalid status!")
 	}
 
-	//for some reason, setting w.status and w.statuscode - these arent writeable, need to set explicitly thus
+	//setting w.status and w.statuscode - these arent writeable, need to set explicitly thus
 	w.SetStatus(Status(statusInt), statusText)
 
 	//the body is everything beyond the header text + /r/n
