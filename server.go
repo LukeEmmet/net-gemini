@@ -47,7 +47,7 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	}
 	defer listener.Close()
 
-	s.logf("Geminigem listening on %s [tls: %v %v]", listener.Addr(), certFile, keyFile)
+	s.logf("server listening on %s [tls: %v %v]", listener.Addr(), certFile, keyFile)
 	return s.serve(listener)
 }
 

@@ -1,18 +1,23 @@
-# Geminigem server
+# Gemini and Nimigem demo server
 
-Geminigem is a dynamic small net server for scripting gemini:// and nimigem:// protocols.
+A dynamic small net server for scripting gemini:// and nimigem:// protocols.
 
-There's not much to see on this home/default page, so please go somewhere more specific, such as one of its scripts. 
+There's not much to see on this home/default page, so please go somewhere more specific, such as one of its scripts. Alternatively, change this page to reflect your own content.
 
 ## CGI scripts
 
 This server has CGI support, so the available resources will depend on the script that are installed. These scripts are installed under /cgi-bin
 
-## Server info
+## Example Go dynamic handlers
 
-=> /info Geminigem server info
+The server supports dynamic handlers in Go. Two examples:
 
-## Geminigem source
+=> /example Example handler - ask me a question
+=> /info Server info
+
+## Source
+
+This demo server uses the net-gemini server framework.
 
 Source code for this server:
     
