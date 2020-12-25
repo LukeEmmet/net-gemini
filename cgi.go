@@ -2,7 +2,10 @@ package gemini
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/url"
@@ -17,37 +20,41 @@ import (
 	"context"
 )
 
+//some elements taken and adapted from Molly Brown  CGI implementation
+
 type cgiHandler struct {
 	cgiRoot string
 	bind string
+	serverName string
 }
 
-func CGIServer(root string, bind string) Handler {
+func CGIServer(root string, bind string, serverName string) Handler {
 	return &cgiHandler{
 		cgiRoot: filepath.Clean(root),
 		bind: bind,
+		serverName: serverName,
 	}
 }
 
-func prepareCGIVariables(URL *url.URL, bind string, conn net.Conn, script_path string, path_info string) map[string]string {
-	vars := prepareGatewayVariables( URL, bind, conn)
+func prepareCGIVariables(URL *url.URL, handler cgiHandler, conn net.Conn, script_path string, path_info string) map[string]string {
+	vars := prepareGatewayVariables( URL, handler, conn)
 	vars["GATEWAY_INTERFACE"] = "CGI/1.1"
 	vars["SCRIPT_PATH"] = script_path
 	vars["PATH_INFO"] = path_info
 	return vars
 }
 
-func prepareGatewayVariables(URL *url.URL, bind string, conn net.Conn) map[string]string {
+func prepareGatewayVariables(URL *url.URL, handler cgiHandler, conn net.Conn) map[string]string {
 	vars := make(map[string]string)
 	vars["QUERY_STRING"] = URL.RawQuery
 	vars["REMOTE_ADDR"] = conn.RemoteAddr().String()
 	vars["REQUEST_METHOD"] = ""
 
-	splitParts := strings.Split(bind, ":")
+	splitParts := strings.Split(handler.bind, ":")
 	vars["SERVER_NAME"] = splitParts[0]
 	vars["SERVER_PORT"] = splitParts[1]
-	vars["SERVER_PROTOCOL"] = "GEMINI"
-	vars["SERVER_SOFTWARE"] = "GEMINIGEM"
+	vars["SERVER_PROTOCOL"] = "GEMINI/NIMIGEM"
+	vars["SERVER_SOFTWARE"] = handler.serverName
 
 	// Add TLS variables
 	var tlsConn (*tls.Conn) = conn.(*tls.Conn)
@@ -58,13 +65,19 @@ func prepareGatewayVariables(URL *url.URL, bind string, conn net.Conn) map[strin
 	clientCerts := connState.PeerCertificates
 	if len(clientCerts) > 0 {
 		cert := clientCerts[0]
-		//vars["TLS_CLIENT_HASH"] = getCertFingerprint(cert)
+		vars["TLS_CLIENT_HASH"] = getCertFingerprint(cert)
 		vars["TLS_CLIENT_ISSUER"] = cert.Issuer.String()
 		vars["TLS_CLIENT_ISSUER_CN"] = cert.Issuer.CommonName
 		vars["TLS_CLIENT_SUBJECT"] = cert.Subject.String()
 		vars["TLS_CLIENT_SUBJECT_CN"] = cert.Subject.CommonName
 	}
 	return vars
+}
+
+func getCertFingerprint(cert *x509.Certificate) string {
+	hash := sha256.Sum256(cert.Raw)
+	fingerprint := hex.EncodeToString(hash[:])
+	return fingerprint
 }
 
 func getShebang(scriptPath string) (path string, flags string) {
@@ -103,7 +116,7 @@ func Debug(s string) {
 	fmt.Fprintf(os.Stderr, "%s\n", s)
 }
 
-func ServeCGI(p string, w *Response, r *Request, bind string) {
+func ServeCGI(p string, w *Response, r *Request, handler cgiHandler) {
 	s, err := os.Stat(p)
 	if err != nil {
 		w.SetStatus(StatusNotFound, "File Not Found!")
@@ -130,7 +143,7 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 	}
 
 	// Prepare environment variables
-	vars := prepareCGIVariables(URL, bind, w.conn, exePath, p)
+	vars := prepareCGIVariables(URL, handler, w.conn, exePath, p)
 	cmd.Env = []string{}
 
 	if URL.Scheme == "nimigem" {
@@ -159,14 +172,11 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 
 	//there is no raw write on this server, so we need to extract the heade and body
 	contentReader := bufio.NewReader(strings.NewReader(string(response)))
-	header, _, err := contentReader.ReadLine()
-	_ , err2 := strconv.Atoi(strings.Fields(string(header))[0])
-	if err != nil || err2 != nil {
-		//first line did not start with a digit, or mising line ending - invalid
-		w.SetStatus(StatusCGIError, "CGI error - invalid header!")
-		return
-	}
+	header, err := getHeader(contentReader)
 
+	if err != nil {
+		w.SetStatus(StatusCGIError, fmt.Sprintf("CGI error - invalid or missing header: %s", err))
+	}
 
 	//split the header into status and text
 	statusSplit := strings.Split(string(header), " ")
@@ -184,16 +194,61 @@ func ServeCGI(p string, w *Response, r *Request, bind string) {
 	w.Write(response[2 + len(header):])
 }
 
-func (fh *cgiHandler) ServeGemini(w *Response, r *Request) {
+func getHeader (contentReader *bufio.Reader) (header string, err error) {
 
-	suffix := len(fh.cgiRoot)
-	p := filepath.Clean(path.Join(fh.cgiRoot, r.URL.Path[2 + suffix:]))
-	if !strings.HasPrefix(p, fh.cgiRoot) {
+	err = nil
+
+	b, errFirst := contentReader.ReadByte()
+	if errFirst != nil {
+		err = fmt.Errorf("empty header")
+		return
+	}
+	for {
+		//uncomment to see raw characters
+		//Debug(fmt.Sprint(int(rune(b))) + ": " + string(b))
+
+		if (b == byte('\r')){
+			b, err = contentReader.ReadByte()
+			//Debug(fmt.Sprint(int(rune(b))) + ": " + string(b))
+			if (b == byte('\n')) {
+				//ok, we're done, we've scanned up to the \r\n successfully
+				break
+			} else {
+				err = fmt.Errorf("missing LF after CR")
+				return
+			}
+
+		} else {
+			//keep this one
+			header += string(b)
+		}
+		b, err = contentReader.ReadByte()
+		if err != nil {
+			err = fmt.Errorf("header too short")
+			return
+		}
+	}
+
+	_ , err2 := strconv.Atoi(string(header[0]))
+	_ , err3 := strconv.Atoi(string(header[1]))
+	if err2 != nil || err3 != nil {
+		err = fmt.Errorf("first 2 characters must be digits")
+		return
+	}
+
+	err = nil
+	return
+}
+func (cgiHandler *cgiHandler) ServeGemini(w *Response, r *Request) {
+
+	suffix := len(cgiHandler.cgiRoot)
+	p := filepath.Clean(path.Join(cgiHandler.cgiRoot, r.URL.Path[2 + suffix:]))
+	if !strings.HasPrefix(p, cgiHandler.cgiRoot) {
 		w.SetStatus(StatusTemporaryFailure, "Path not in scope!")
 		return
 	}
 
-	ServeCGI(p, w, r, fh.bind)
+	ServeCGI(p, w, r, *cgiHandler)
 }
 
 func cgiAllowed(fi os.FileInfo) bool {
