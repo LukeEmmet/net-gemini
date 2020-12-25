@@ -11,13 +11,15 @@ import (
 )
 
 var version = "0.1.1"
+var serverName = "Demo Dynamic Gemini/Nimigem server"
 
 func infoPage(w *gemini.Response, r *gemini.Request) {
 
 	info := "# Server info\n" +
 		"\n" +
-		"* Gemini-Nimigem demo server v" + version + "\n" +
-		"* Current time is: " + time.Now().Format(time.ANSIC) + "\n" +
+		"* server name: " + serverName + "\n" +
+		"* version: " + version + "\n" +
+		"* local time: " + time.Now().Format(time.ANSIC) + "\n" +
 		""
 
 	w.SetStatus(gemini.StatusSuccess, "text/gemini")
@@ -49,7 +51,7 @@ func main() {
 	gemini.HandleFunc("/info", infoPage)
 
 	//use cgi module to handle urls starting cgi-bin
-	gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, *bind))
+	gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, *bind, serverName))
 
 	//put the generic one last, otherwise it will take precedence over others
 	//file handling module is
