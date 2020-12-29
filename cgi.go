@@ -50,9 +50,8 @@ func prepareGatewayVariables(URL *url.URL, handler cgiHandler, conn net.Conn) ma
 	vars["REMOTE_ADDR"] = conn.RemoteAddr().String()
 	vars["REQUEST_METHOD"] = ""
 
-	splitParts := strings.Split(handler.bind, ":")
-	vars["SERVER_NAME"] = splitParts[0]
-	vars["SERVER_PORT"] = splitParts[1]
+	vars["SERVER_NAME"] = URL.Host
+	vars["SERVER_PORT"] = URL.Port()
 	vars["SERVER_PROTOCOL"] = "GEMINI/NIMIGEM"
 	vars["SERVER_SOFTWARE"] = handler.serverName
 
@@ -176,6 +175,7 @@ func ServeCGI(p string, w *Response, r *Request, handler cgiHandler) {
 
 	if err != nil {
 		w.SetStatus(StatusCGIError, fmt.Sprintf("CGI error - invalid or missing header: %s", err))
+		return
 	}
 
 	//split the header into status and text
@@ -185,6 +185,7 @@ func ServeCGI(p string, w *Response, r *Request, handler cgiHandler) {
 	statusInt, err := strconv.Atoi(statusSplit[0])
 	if err != nil {
 		w.SetStatus(StatusCGIError, "CGI error - invalid status!")
+		return
 	}
 
 	//setting w.status and w.statuscode - these arent writeable, need to set explicitly thus
