@@ -24,14 +24,12 @@ import (
 
 type cgiHandler struct {
 	cgiRoot string
-	bind string
 	serverName string
 }
 
-func CGIServer(root string, bind string, serverName string) Handler {
+func CGIServer(root string, serverName string) Handler {
 	return &cgiHandler{
 		cgiRoot: filepath.Clean(root),
-		bind: bind,
 		serverName: serverName,
 	}
 }
