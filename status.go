@@ -25,6 +25,6 @@ const (
 	StatusFutureCertRejected                 = 64
 	StatusExpiredCertRejected                = 65
     
-    //overlaps with Gemini response above (21 which is not an official part of gemini)
-    StatusNimigemSuccess                = 21
+    //Nimigem status codes distinct from the normal Gemini ones
+    StatusNimigemSuccess                = 25
 )
