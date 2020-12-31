@@ -12,7 +12,7 @@ type Request struct {
 }
 
 type Response struct {
-	conn       net.Conn
+	Conn       net.Conn
 	status     bool
 	statusCode Status
 	statusText string
@@ -25,7 +25,7 @@ func (r *Response) Write(b []byte) (int, error) {
 			return 0, err
 		}
 	}
-	return r.conn.Write(b)
+	return r.Conn.Write(b)
 }
 
 func (r *Response) SetStatus(s Status, mime string) error {
@@ -34,7 +34,7 @@ func (r *Response) SetStatus(s Status, mime string) error {
 		r.statusText = mime
 		return nil
 	} else {
-		_, err := r.conn.Write([]byte(fmt.Sprintf("%d %s\r\n", s, mime)))
+		_, err := r.Conn.Write([]byte(fmt.Sprintf("%d %s\r\n", s, mime)))
 		if err == nil {
 			r.status = true
 			r.statusCode = s

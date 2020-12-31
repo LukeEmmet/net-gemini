@@ -39,6 +39,7 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	tlscfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
+		ClientAuth:   tls.RequestClientCert,			//otherwise certs array will be empty even when client sends one
 	}
 
 	listener, err := tls.Listen("tcp", s.Addr, tlscfg)
@@ -67,7 +68,7 @@ func (s *Server) serve(listener net.Listener) error {
 func (s *Server) handleGeminiRequest(conn net.Conn) {
 	readDeadline := time.Time{}
 	in := Request{}
-	out := Response{conn: conn}
+	out := Response{Conn: conn}
 	t0 := time.Now()
 	if d := s.ReadTimeout; d != 0 {
 		readDeadline = t0.Add(d)
