@@ -51,7 +51,7 @@ func main() {
 	gemini.HandleFunc("/info", infoPage)
 
 	//use cgi module to handle urls starting cgi-bin
-	gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, *bind, serverName))
+	gemini.Handle("/cgi-bin", gemini.CGIServer(*cgi, serverName))
 
 	//put the generic one last, otherwise it will take precedence over others
 	//file handling module is
