@@ -50,7 +50,7 @@ func prepareGatewayVariables(URL *url.URL, handler cgiHandler, conn net.Conn) ma
 
 	vars["SERVER_NAME"] = URL.Host
 	vars["SERVER_PORT"] = URL.Port()
-	vars["SERVER_PROTOCOL"] = "GEMINI/NIMIGEM"
+	vars["SERVER_PROTOCOL"] = URL.Scheme
 	vars["SERVER_SOFTWARE"] = handler.serverName
 
 	// Add TLS variables
@@ -140,7 +140,7 @@ func ServeCGI(p string, w *Response, r *Request, handler cgiHandler) {
 	}
 
 	// Prepare environment variables
-	vars := prepareCGIVariables(URL, handler, w.conn, exePath, p)
+	vars := prepareCGIVariables(URL, handler, w.Conn, exePath, p)
 	cmd.Env = []string{}
 
 	if URL.Scheme == "nimigem" {
