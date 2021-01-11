@@ -9,6 +9,7 @@ import (
 type Request struct {
 	URL *url.URL
 	Payload string
+	Mime string
 }
 
 type Response struct {

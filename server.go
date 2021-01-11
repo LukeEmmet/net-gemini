@@ -119,7 +119,8 @@ func (s *Server) handleGeminiRequest(conn net.Conn) {
 		return
 	}
 
-	payload := ""		//defined for nimigem, otherwise empty for gemini
+	payload := ""					//defined for nimigem, otherwise empty for gemini
+	mime := "text/plain"			//defined for nimigem, otherwise empty, default is text/plain
 	urlPart := ""
 	request := string(requestHead) + string(requestTail)
 
@@ -129,10 +130,27 @@ func (s *Server) handleGeminiRequest(conn net.Conn) {
 		urlPart = parts[0]
 
 		if len(parts) > 1 {
-			payload, err = url.PathUnescape(parts[1])		//decode the payload
+			rawPayload, err := url.PathUnescape(parts[1])		//decode the payload
 			if err != nil {
 				_ = out.SetStatus(StatusPermanentFailure, "invalid nimigem payload encoding! "+err.Error())
+				return
 			}
+
+			//split on the first \r\n to get the header/body
+			payloadSplit := strings.SplitN(rawPayload, "\r\n", 2)
+
+			if len(strings.Trim(payloadSplit[0], " ")) > 0 {
+				//non-empty
+				mime = payloadSplit[0]
+			}
+			if len(payloadSplit) > 1 {
+				payload = payloadSplit[1]
+			} else {
+				//invalid payload - missing header/body \r\n split
+				_ = out.SetStatus(StatusPermanentFailure, "invalid nimigem payload format - missing header!")
+				return
+			}
+
 		}
 	} else {
 		urlPart = request
@@ -148,6 +166,7 @@ func (s *Server) handleGeminiRequest(conn net.Conn) {
 
 	in.URL = URL
 	in.Payload = payload
+	in.Mime = mime
 
     //hand off to the active handler for this request
 	s.Handler.ServeGemini(&out, &in)
